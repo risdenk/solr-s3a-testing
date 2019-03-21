@@ -1,0 +1,44 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
+version: '2'
+services:
+  zookeeper:
+    image: zookeeper
+
+  solr:
+    build: solr/
+    hostname: solr
+    ports:
+      - "8983:8983"
+#      - "5005:5005"
+    environment:
+      - "AWS_ACCESS_KEY_ID=MyAccessKey"
+      - "AWS_SECRET_ACCESS_KEY=MySecretKey"
+    command: bin/solr -f -c -z zookeeper:2181 -a "-Dsolr.directoryFactory=HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=s3a://solr -Dsolr.hdfs.confdir=/etc/hadoop/conf -Dsolr.hdfs.blockcache.enabled=true -Dsolr.hdfs.blockcache.global=true -Dsolr.hdfs.blockcache.read.enabled=true -Dsolr.hdfs.blockcache.write.enabled=false -Dsolr.hdfs.blockcache.blocksperbank=1024 -Dsolr.hdfs.blockcache.slab.count=1 -Dsolr.hdfs.blockcache.direct.memory.allocation=true -XX:MaxDirectMemorySize=100m"
+#"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+    depends_on:
+      - zookeeper
+      - fakes3
+
+  fakes3:
+    image: minio/minio
+    ports:
+      - "4569:4569"
+    environment:
+      - "MINIO_ACCESS_KEY=MyAccessKey"
+      - "MINIO_SECRET_KEY=MySecretKey"
+      - "MINIO_HTTP_TRACE=/dev/stdout"
+    command: ["server", "--address", ":4569", "/data"]
+
